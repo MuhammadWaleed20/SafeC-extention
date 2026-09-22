@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "Secret Guardian Pro",
+    "version": "2.1",
+    "description": "Blocks API keys from being pasted into chatbots and code repositories.",
+    "permissions": [
+        "activeTab"
+    ],
+    "host_permissions": [
+        "http://127.0.0.1:8000/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.chatgpt.com/*",
+                "*://*.github.com/*",
+                "*://claude.ai/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_start"
+        }
+    ]
+}
