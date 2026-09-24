@@ -15,7 +15,6 @@ app.add_middleware(
 class PasteData(BaseModel):
     text: str
 
-# Enterprise-grade Regex patterns for major API keys and Secrets
 SECRET_PATTERNS = {
     "OpenAI API Key": r"sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{32,}",
     "Anthropic API Key": r"sk-ant-[A-Za-z0-9_-]{40,}",
@@ -31,20 +30,25 @@ SECRET_PATTERNS = {
     "Generic Private Key": r"-----BEGIN PRIVATE KEY-----"
 }
 
-def analyze_text_for_secrets(text: str):
-    for platform, pattern in SECRET_PATTERNS.items():
-        if re.search(pattern, text):
-            return platform # Returns the name of the leaked key
-    return None
-
 @app.post("/scan")
 async def scan_clipboard(data: PasteData):
-    detected_platform = analyze_text_for_secrets(data.text)
+    redacted_text = data.text
+    was_redacted = False
+    detected_keys = []
     
-    if detected_platform:
-        return {"is_safe": False, "detected": detected_platform}
-    
-    return {"is_safe": True, "detected": None}
+    # Check text against all patterns and replace the exact matches
+    for platform, pattern in SECRET_PATTERNS.items():
+        if re.search(pattern, redacted_text):
+            was_redacted = True
+            detected_keys.append(platform)
+            # Replace the actual key with a placeholder text
+            redacted_text = re.sub(pattern, f"[*** HIDDEN {platform} ***]", redacted_text)
+            
+    return {
+        "sanitized_text": redacted_text, 
+        "was_redacted": was_redacted, 
+        "detected": detected_keys
+    }
 
 if __name__ == "__main__":
     import uvicorn
